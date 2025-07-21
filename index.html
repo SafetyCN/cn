@@ -146,6 +146,7 @@
         #print-preview-header {
             background-color: #333;
             color: white;
+            /* Adjusted padding to account for safe area insets on notched devices */
             padding: calc(10px + var(--safe-area-inset-top)) 20px 10px 20px;
             width: 100%;
             display: flex;
@@ -155,48 +156,30 @@
         }
         #print-preview-content {
             background-color: #525659;
+            padding: 20px;
             overflow-y: auto;
             width: 100%;
             flex-grow: 1;
         }
-
-        /* --- Preview Content Styling (FIXED) --- */
-        /* Desktop Preview: Show A4-style printable table */
-        @media (min-width: 768px) {
-            #print-preview-content {
-                padding: 20px;
-            }
-            #print-preview-content .printable-table-container {
-                display: block !important;
-                background-color: white;
-                width: 297mm;
-                min-height: 200mm;
-                margin: 20px auto;
-                box-shadow: 0 0 15px rgba(0,0,0,0.5);
-                page-break-before: auto !important;
-            }
-            #print-preview-content .printable-table-container:not(:first-child) {
-                margin-top: 20px;
-            }
-            #print-preview-content .mobile-detail-container {
-                display: none !important;
-            }
+        #print-preview-content .printable-table-container {
+            background-color: white;
+            width: 297mm; /* A4 landscape width */
+            min-height: 200mm; /* A4 landscape height, can be adjusted */
+            margin: 20px auto;
+            box-shadow: 0 0 15px rgba(0,0,0,0.5);
+            /* Reset page-break for preview scrolling */
+            page-break-before: auto !important;
         }
-
-        /* Mobile Preview: Show mobile-friendly card view */
-        @media (max-width: 767px) {
-            #print-preview-content {
-                padding: 0; /* Remove outer padding for a full-screen feel */
-            }
-            #print-preview-content .printable-table-container {
-                display: none !important;
-            }
-            #print-preview-content .mobile-detail-container {
-                display: block !important;
-                padding: 1rem; /* Add inner padding for the content */
-            }
+         #print-preview-content .printable-table-container:not(:first-child) {
+            margin-top: 20px;
         }
-        
+        /* --- FIX: Ensure preview shows correct content --- */
+        #print-preview-content .printable-table-container {
+            display: block !important;
+        }
+        #print-preview-content .mobile-detail-container {
+            display: none !important;
+        }
         .preview-controls button {
             padding: 8px 16px;
             border: none;
@@ -204,7 +187,7 @@
             cursor: pointer;
             font-weight: bold;
             margin-left: 10px;
-            transition: background-color 0.3s;
+            transition: background-color: 0.3s;
         }
         .preview-controls button:disabled {
             background-color: #999;
@@ -353,7 +336,7 @@
             </a>
         </div><br>
         <div class="text-center mb-12">
-         <p class="text-sm text-slate-400 mt-1"> V 2.4</p>
+         <p class="text-sm text-slate-400 mt-1"> V 2.3</p>
         </div>
     </div>
 
@@ -869,7 +852,7 @@
             const cacheKey = `detail-${config.sheetId}-${year}-${month}`;
 
             if (monthlyDetailDataCache[cacheKey]) {
-                renderMonthlyDetailTables(monthlyDetailDataCache[cacheKey], config, monthYearValue);
+                await renderMonthlyDetailTables(monthlyDetailDataCache[cacheKey], config, monthYearValue);
                 return;
             }
 
@@ -877,7 +860,10 @@
                 const result = await apiCall('getMonthlySheetData', { sheetId: config.sheetId, sheetName: config.sheetName, year, month }, 'monthly');
                 const dataToRender = Array.isArray(result?.data) ? result.data : [];
                 monthlyDetailDataCache[cacheKey] = dataToRender;
-                renderMonthlyDetailTables(dataToRender, config, monthYearValue);
+                // --- FIX ---
+                // Added 'await' to ensure rendering completes before the function returns.
+                // This prevents the mobile preview from showing an empty state.
+                await renderMonthlyDetailTables(dataToRender, config, monthYearValue);
             } catch (error) {
                 monthlyDetailPageContent.innerHTML = `<p class="text-red-500 text-center p-8">เกิดข้อผิดพลาดในการโหลดข้อมูล: ${error.message}</p>`;
             }
@@ -1174,7 +1160,7 @@
             const modalHtml = `
                 <div id="print-preview-modal">
                     <div id="print-preview-header">
-                        <h2 class="text-xl font-bold truncate pr-2">ตัวอย่าง: ${headerText}</h2>
+                        <h2 class="text-xl font-bold truncate pr-2">ตัวอย่างก่อนพิมพ์: ${headerText}</h2>
                         <div class="preview-controls flex-shrink-0">
                             <button id="execute-print-btn" class="print-btn ${isMobileView ? 'hidden' : ''}">ดาวน์โหลด</button>
                             <button id="close-preview-btn" class="close-btn">ปิด</button>
